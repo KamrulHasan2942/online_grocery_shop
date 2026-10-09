@@ -1,4 +1,6 @@
+
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
@@ -8,22 +10,25 @@ import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
-    // 🔥 PostgreSQL Connection
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5433, // ⚠️ make sure PostgreSQL is running on this port
-      username: 'postgres',
-      password: 'Ka622372',
-      database: 'riderDB',
-      autoLoadEntities: true,
-      synchronize: true, // ✅ auto create tables
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
 
-    // 🔐 Auth first (recommended)
-    AuthModule,
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres' as const,
+        host: config.get<string>('DB_HOST'),
+        port: Number(config.get<string>('DB_PORT')),
+        username: config.get<string>('DB_USERNAME'),
+        password: config.get<string>('DB_PASSWORD'),
+        database: config.get<string>('DB_DATABASE'),
+        autoLoadEntities: true,
+        synchronize: true,
+      }),
+    }),
 
-    // 🚴 Rider module
+    AuthModule,
     RiderModule,
   ],
   controllers: [AppController],
